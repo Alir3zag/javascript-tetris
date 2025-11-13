@@ -8,8 +8,8 @@
     function html(id, html) { get(id).innerHTML = html;            }
 
     function timestamp()           { return new Date().getTime();                             }
-    function random(min, max)      { return (min + (Math.random() * (max - min)));            }
-    function randomChoice(choices) { return choices[Math.round(random(0, choices.length-1))]; }
+    function random(min, max)      { return Math.floor(Math.random() * (max - min + 1)) + min;}
+    function randomChoice(choices) { return choices[Math.floor(random(0, choices.length))];   }
 
     if (!window.requestAnimationFrame) { // http://paulirish.com/2011/requestanimationframe-for-smart-animating/
     window.requestAnimationFrame = window.webkitRequestAnimationFrame ||
@@ -82,7 +82,7 @@
     const j = { size: 3, blocks: [0x44C0, 0x8E00, 0x6440, 0x0E20], color: 'blue'   };
     const l = { size: 3, blocks: [0x4460, 0x0E80, 0xC440, 0x2E00], color: 'orange' };
     const o = { size: 2, blocks: [0xCC00, 0xCC00, 0xCC00, 0xCC00], color: 'yellow' };
-    const s = { size: 3, blocks: [0x06C0, 0x8C40, 0x6C00, 0x4620], color: 'green'  };
+    const s = { size: 3, blocks: [0x06C0, 0x8C40, 0x6C00, 0x4C80], color: 'green' };
     const t = { size: 3, blocks: [0x0E40, 0x4C40, 0x4E00, 0x4640], color: 'purple' };
     const z = { size: 3, blocks: [0x0C60, 0x4C80, 0xC600, 0x2640], color: 'red'    };
 
@@ -91,6 +91,7 @@
     // occupied block (x,y) for a given piece
     //------------------------------------------------
     function eachblock(type, x, y, dir, fn) {
+        dir = ((dir % 4) + 4) % 4;
         var bit, row = 0, col = 0, blocks = type.blocks[dir];
         for(bit = 0x8000 ; bit > 0 ; bit = bit >> 1) {
             if (blocks & bit) {
@@ -107,7 +108,7 @@
     // check if a piece can fit into a position in the grid
     //-----------------------------------------------------
     function occupied(type, x, y, dir) {
-        var result = false
+        var result = false;
         eachblock(type, x, y, dir, function(x, y) {
             if ((x < 0) || (x >= nx) || (y < 0) || (y >= ny) || getBlock(x,y))
                 result = true;
@@ -128,7 +129,7 @@
         if (pieces.length === 0)
             pieces = [i,i,i,i,j,j,j,j,l,l,l,l,o,o,o,o,s,s,s,s,t,t,t,t,z,z,z,z];
         var type = pieces.splice(random(0, pieces.length-1), 1)[0];
-        return { type: type, dir: DIR.UP, x: Math.round(random(0, nx - type.size)), y: 0 };
+        return { type: type, dir: DIR.UP, x: Math.floor(random(0, nx - type.size)), y: 0 };
     }
 
 
@@ -302,7 +303,7 @@
 
     function removeLines() {
         var x, y, complete, n = 0;
-        for(y = ny ; y > 0 ; --y) {
+        for(y = ny - 1 ; y > 0 ; --y) {
             complete = true;
             for(x = 0 ; x < nx ; ++x) {
                 if (!getBlock(x, y)) {
@@ -406,11 +407,14 @@
     function drawBlock(ctx, x, y, color) {
         ctx.fillStyle = color;
         ctx.fillRect(x*dx, y*dy, dx, dy);
-        ctx.strokeRect(x*dx, y*dy, dx, dy)
+        ctx.strokeStyle = 'black';
+        ctx.strokeRect(x*dx, y*dy, dx, dy);
     }
 
     function agent() {
-        let bestMove = selectBestMove(current);
+        // let bestMove = selectBestMove(current);        // heuristic
+        let bestMove = selectBestMoveBeamSearch(current); // Beam Search
+    
         if (bestMove) {
             let dropY = getDropPosition(bestMove.piece, bestMove.x);
             current.x = bestMove.x;
